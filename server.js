@@ -9,7 +9,7 @@ app.get("/",function(res,req){
 
 app.listen(process.env.PORT||5000)
 
-const PORT=5000;
+const PORT=process.env.PORT;
 
 const wsServer = new Websocket.Server({
     port: PORT
@@ -18,7 +18,6 @@ const wsServer = new Websocket.Server({
 wsServer.on('connection',function(socket){
     //Feedback
     console.log("a client just connected");
-
     //Behavior
     socket.on('message',function(msg){
         console.log("Recieved message from client: "+msg);
