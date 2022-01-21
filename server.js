@@ -1,18 +1,10 @@
 
 const Websocket = require('ws');
-const express = require('express');
-const app=express()
 
-app.get("/",function(res,req){
-    res.send("working")
-})
-
-app.listen(process.env.PORT||5000)
-
-const PORT=process.env.PORT;
+const portal=(process.env.PORT||5000);
 
 const wsServer = new Websocket.Server({
-    port: PORT
+    port: portal
 })
 
 wsServer.on('connection',function(socket){
@@ -31,4 +23,3 @@ wsServer.on('connection',function(socket){
     })
 })
 
-console.log((new Date())+"Server is listening on port "+PORT);
