@@ -12,9 +12,9 @@ wsServer.on('connection',function(socket){
     console.log("a client just connected.");
     //Behavior
     socket.on('message',function(msg){
-        console.log("Recieved message from client: "+msg);
+        console.log("Recieved message from cliente joseluis: "+msg);
         //Reenviar
-        socket.send("Resend message: "+msg);
+        socket.send("Resend message to a single client: "+msg);
 
         //Broadcast
         wsServer.clients.forEach(function(client){
