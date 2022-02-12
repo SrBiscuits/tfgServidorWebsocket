@@ -1,34 +1,48 @@
+var uuid = require('uuid-random');
+const WebSocket = require('ws')
+const portal=(process.env.PORT||8080);
 
-const Websocket = require('ws');
-const express = require('express');
-const app=express()
-
-app.get("/",function(res,req){
-    res.send("working")
+const wss = new WebSocket.WebSocketServer({portal}, ()=> {
+	console.log('server started')
 })
 
-app.listen(process.env.PORT||5000);
+//Object that stores player data 
+var playersData = {
+	"type" : "playerData"
+}
 
-const PORT=5000;
+//=====WEBSOCKET FUNCTIONS======
 
-const wsServer = new Websocket.Server({
-    port: PORT
+//Websocket function that managages connection with clients
+wss.on('connection', function connection(client){
+
+	//Create Unique User ID for player
+	client.id = uuid();
+
+	console.log(`Client ${client.id} Connected!`)
+	
+	var currentClient = playersData[""+client.id]
+
+	//Send default client data back to client for reference
+	client.send(`{"id": "${client.id}"}`)
+
+	//Method retrieves message from client
+	client.on('message', (data) => {
+		var dataJSON = JSON.parse(data)
+		
+		console.log("Player Message")
+		console.log(dataJSON)
+		
+	})
+
+	//Method notifies when client disconnects
+	client.on('close', () => {
+		console.log('This Connection Closed!')
+		console.log("Removing Client: " + client.id)
+	})
+
 })
 
-wsServer.on('connection',function(socket){
-    //Feedback
-    console.log("a client just connected");
-    //Behavior
-    socket.on('message',function(msg){
-        console.log("Recieved message from client: "+msg);
-        //Reenviar
-        socket.send("Resend message: "+msg);
-
-        //Broadcast
-        wsServer.clients.forEach(function(client){
-            client.send("Reenviado a todos: "+msg);
-        })
-    })
+wss.on('listening', () => {
+	console.log('listening on 8080')
 })
-
-console.log((new Date())+"Server is listening on port "+PORT);
