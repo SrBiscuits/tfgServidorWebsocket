@@ -1,1 +1,1 @@
-node server.js
+nodemon index.js
