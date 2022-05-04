@@ -1,3 +1,4 @@
+let shortID=require('shortid')
 let Connection = require('../Connection')
 let ServerItem=require('../Utility/ServerItem')
 let Vector3=require('../Vector3')
@@ -5,16 +6,16 @@ let AIBase=require('../AI/AIBase')
 const Server = require('socket.io')
 
 module.exports = class LobbyBase {
-    constructor(id) {
-        this.id = id;
+    constructor() {
+        this.id = shortID.generate();
         this.connections = [];
         this.serverItems=[];
     }
 
-    onUpdate() {       
+    onUpdate() {  
+        /*     
         let lobby=this;
-        let serverItems=lobby.serverItems;
-        /*
+        let serverItems=lobby.serverItems;   
         let aiList=serverItems.filter(item =>{return item instanceof AIBase;});
         aiList.forEach(AI=>{
             AI.onObtainTarget(lobby.connections);
@@ -87,7 +88,7 @@ module.exports = class LobbyBase {
         let lobby = this;
         let connections=lobby.connections;
 
-        lobby.this.deleteServerItem(item);
+        lobby.deleteServerItem(item);
 
         connections.forEach(connection=>{
             connection.socket.emit('serverUnspawn',{
@@ -99,7 +100,7 @@ module.exports = class LobbyBase {
     deleteServerItem(item=Server){
         let lobby =this;
         let serverItems=lobby.serverItems;
-        let index=serverItem.indexOf(item);
+        let index=serverItems.indexOf(item);
 
         //SI es mas grande, existe
         if(index>-1){

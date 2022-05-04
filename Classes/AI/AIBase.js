@@ -7,11 +7,23 @@ module.exports=class AIBase extends ServerItem{
         this.username='AI_BASE';
         this.health=new Number(150);
         this.isDead=false;
+        this.canRespawn=true;
+        this.respawnTimer=Number(2);
     }
 
-    onUpdate(onUpdatePosition,onUpdateRotation){
-        //Calculate Statemachine
-    }   
+    onUpdate(){
+    }  
+
+    onCanRespawn(){
+        if(this.canRespawn==false){
+            this.respawnTimer-=0.1;
+            if(this.respawnTimer<=0){
+                this.canRespawn=true;
+                this.respawnTimer=2;
+            }
+        }
+        return this.canRespawn;
+    }
 
     onObtainTarget(connections){
     }
@@ -29,11 +41,8 @@ module.exports=class AIBase extends ServerItem{
 
         if(this.health <= 0 ) {
             this.isDead = true;
+            this.canRespawn=false;
         }
         return this.isDead;
-    }
-
-    radiants2Degrees(){
-        return new Number(57.29578);        
     }
 }

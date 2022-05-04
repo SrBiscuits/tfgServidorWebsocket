@@ -2,12 +2,9 @@
 //ws://tfgzombieswebsocket.herokuapp.com:80/socket.io/?EIO=3&transport=websocket
 var io = require('socket.io')(process.env.PORT||52300);
 let Server = require('./Classes/Server')
-/*var Player = require('./Classes/Player.js');
-const Vector3 = require('./Classes/Vector3');
-*/
-console.log('Server has started');
-
 let server=new Server();
+
+console.log('Server has started');
 
 //updates cada 100 milisegundos de forma infinita
 setInterval(()=>{
@@ -20,6 +17,11 @@ io.on('connection',function(socket){
     connection.socket.emit('register',{'id':connection.player.id});
 });
 
+
+
+/*var Player = require('./Classes/Player.js');
+const Vector3 = require('./Classes/Vector3');
+*/
 
 /*var players = [];
 var sockets = [];

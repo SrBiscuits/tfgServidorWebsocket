@@ -11,7 +11,10 @@ module.exports = class Server {
         this.connections = [];
         this.lobbys = [];
 
-        this.lobbys[0] = new LobbyBase(0);
+        this.generalServerID='General Server';
+        this.startLobby=new LobbyBase();
+        this.startLobby.id=this.generalServerID;
+        this.lobbys[this.generalServerID]=this.startLobby;  
     }
 
     //Interval update every 100 miliseconds
@@ -30,6 +33,7 @@ module.exports = class Server {
         let connection = new Connection();
         connection.socket = socket;
         connection.player = new Player();
+        connection.player.lobby=server.startLobby.id;
         connection.server = server;
 
         let player = connection.player;
@@ -58,19 +62,20 @@ module.exports = class Server {
         });
 
         //Preform lobby clean up
-        server.lobbys[connection.player.lobby].onLeaveLobby(connection);
-        /*
-        if (server.lobbys[connection.player.lobby] != undefined && server.lobbys[connection.player.lobby].connections.length == 0) {
-            server.closeDownLobby(connection.player.lobby);
-        }*/
+        let currentLobbyIndex=connection.player.lobby;
+        server.lobbys[currentLobbyIndex].onLeaveLobby(connection);
+        
+        if (currentLobbyIndex != server.generalServerID && server.lobbys[currentLobbyIndex]!=undefined && server.lobbys[currentLobbyIndex].connections.length == 0) 
+        {
+            console.log("Cerrando sala: "+currentLobbyIndex)
+            delete server.lobbys[currentLobbyIndex];          
+        }
     }
 
-    /*
-    closeDownLobby(index) {
-        let server = this;
-        console.log('Closing down lobby (' + index + ')');
-        delete server.lobbys[index];
-    }*/
+    onStartLobby(id)
+    {
+        this.lobbys[id].onStartGame();
+    }
 
     onAttemptToJoinGame(connection = Connection) {
         //Look through lobbies for a gamelobby
@@ -79,9 +84,12 @@ module.exports = class Server {
         let server = this;
         let lobbyFound = false;
 
-        let gameLobbies = server.lobbys.filter(lobby => {
-            return lobby instanceof GameLobby;
-        });
+        let gameLobbies =[];
+        for(var id in server.lobbys){
+            if(server.lobbys[id] instanceof GameLobby){
+                gameLobbies.push(server.lobbys[id]);
+            }
+        }
         console.log('Found (' + gameLobbies.length + ') lobbies on the server');
 
         gameLobbies.forEach(lobby => {
@@ -99,9 +107,9 @@ module.exports = class Server {
         if(!lobbyFound) {
             console.log('Making a new game lobby');
             connection.socket.emit('host');
-            let gamelobby = new GameLobby(gameLobbies.length + 1, new GameLobbySettings('Zombies', 2));
+            let gamelobby = new GameLobby(new GameLobbySettings('Zombies', 4));
             //gamelobby.endGameLobby = function() {server.closeDownLobby(gamelobby.id)};
-            server.lobbys.push(gamelobby);
+            server.lobbys[gamelobby.id]=gamelobby;
             server.onSwitchLobby(connection, gamelobby.id);
         }
     }

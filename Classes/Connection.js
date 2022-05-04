@@ -1,4 +1,5 @@
-let Prototypes = require('./Utility/Prototypes') 
+let Prototypes = require('./Utility/Prototypes'); 
+const Vector3 = require('./Vector3');
 
 module.exports=class Connection{
     constructor(){
@@ -53,6 +54,21 @@ module.exports=class Connection{
             player.playerRotation=data.playerRotation;
             socket.broadcast.to(connection.lobby.id).emit('updateRotation',player);
         });
+        socket.on('updateZombiePosition',function(data){
+            let location=new Vector3();               
+            location.x=data.position.x;
+            location.y=data.position.y;
+            location.z=data.position.z;
+            let position = location.JSONData();
+            position.x = new Number(position.x).formatNumber();
+            position.y = new Number(position.y).formatNumber();
+            position.z = new Number(position.z).formatNumber();
+            
+            socket.broadcast.to(connection.lobby.id).emit('updatePosition', {
+                id: data.id,
+                position: position
+            });
+        });
         socket.on('playerHit',function(data){
             connection.lobby.OnPlayerHit(data);
         }); 
@@ -64,5 +80,8 @@ module.exports=class Connection{
                 zombieRotation: data.zombieRotation
             });
         });
+        socket.on('startGame',function(data){
+            server.onStartLobby(data.id);
+        }); 
     }
 }

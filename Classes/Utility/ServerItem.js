@@ -1,4 +1,4 @@
-let shortID=require('shortID');
+let shortID=require('shortid');
 let Vector3=require('../Vector3.js');
 
 module.exports=class ServerItem{

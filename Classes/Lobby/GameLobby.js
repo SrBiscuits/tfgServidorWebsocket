@@ -6,162 +6,65 @@ let Vector3=require('../Vector3')
 let ServerItem=require('../Utility/ServerItem')
 let AIBase=require('../AI/AIBase')
 let ZombieAI=require('../AI/ZombieAI')
-const Player = require('../Player')
- 
+let MaxAmmo=require('../Items/MaxAmmo')
+let LobbyState =require('../Utility/LobbyState.js')
+const ItemBase = require('../Items/ItemBase')
+
 module.exports = class GameLobbby extends LobbyBase {
-    constructor(id, settings = GameLobbySettings) {
-        super(id);
+    constructor(settings = GameLobbySettings) {
+        super(); //Heredar
+        this.lobbyUpdate=false;
         this.settings = settings;
+        this.lobbyState=new LobbyState();
         this.endGameLobby = function() {};
         this.bullets = [];
         this.zombieSpawnTimeCounter=Number(0);
         this.maxZombiesReached=false;
         this.totalZombies=Number(0);
         this.allZombiesSpawned=Number(0);
-        this.maxZombies=Number(20);
+        this.maxZombies=Number(10);
         this.allZombiesRound=Number(6);
         this.roundComplete=false;
         this.nextRoundTimeCounter=Number(0);
         this.round=Number(1);
         this.zombies=Number(0);
     }
-
     onUpdate() {
         let lobby = this;
-
-        super.onUpdate();
-
-        lobby.updateBullets();
-        lobby.updateZombies();
-        lobby.updateRound();
-    }
-
-    canEnterLobby(connection = Connection) {
-        let lobby = this;
-        let maxPlayerCount = lobby.settings.maxPlayers;
-        let currentPlayerCount = lobby.connections.length;
-
-        if(currentPlayerCount + 1 > maxPlayerCount) {
-            return false;
-        }
-
-        return true;
-    }
-
-    onEnterLobby(connection = Connection) {
-        let lobby = this;
-        let socket=connection.socket;
-
-        super.onEnterLobby(connection);
-
-        lobby.addPlayer(connection);
-        socket.emit('loadGame');
-        
-        //Handle spawning any server spawned objects here
-        //Example: loot, perhaps flying bullets etc
-    }
-
-    onLeaveLobby(connection = Connection) {
-        let lobby = this;
-
-        super.onLeaveLobby(connection);
-
-        lobby.removePlayer(connection);
-
-        //Handle unspawning any server spawned objects here
-        //Example: loot, perhaps flying bullets etc
-        lobby.onUnspawnAllAIInGame(connection);
-    }
-
-    addPlayer(connection = Connection) {
-        let lobby = this;
-        let connections = lobby.connections;
-        let socket = connection.socket;
-
-        var returnData = {
-            id: connection.player.id
-        }
-
-        socket.emit('spawn', returnData); //tell myself I have spawned
-        socket.broadcast.to(lobby.id).emit('Otherspawn', returnData); // Tell others
-
-        //Tell myself about everyone else already in the lobby
-        connections.forEach(c => {
-            if(c.player.id != connection.player.id) {
-                socket.emit('Otherspawn', {
-                    id: c.player.id
-                });
-            }
-        });
-    }
-
-    onSpawnAIIntoGame(){
-        
-        let lobby=this;
-
-        if(this.maxZombiesReached)
+        if(this.lobbyUpdate)
         {
-            let found=false;
+            super.onUpdate();
+            lobby.updateBullets();
+            lobby.updateZombies();
+            lobby.updateRound();
+            lobby.updateItems();
             let aiList = lobby.serverItems.filter(item => {return item instanceof AIBase;});
             aiList.forEach(ai => {
-                if(ai.isDead && found==false)
-                {
-                    ai.respawn(this.round);
-                    found=true;
-                    var returnData = {
-                        id: ai.id/*,
-                        position: {
-                            x: ai.position.x,
-                            y: ai.position.y,
-                            z: ai.position.z
-                        },*/
-                    }
-                    console.log("zombie respawned with id"+returnData.id);
-                    lobby.connections[0].socket.emit('playerRespawn', returnData);
-                    lobby.connections[0].socket.broadcast.to(lobby.id).emit('playerRespawn', returnData);           
-                }
-            }); 
+                let respawn=ai.onCanRespawn();
+            });
         }
-        else
-        {
-            lobby.onServerSpawn(new ZombieAI(),new Vector3());
-        } 
     }
-
-    onUnspawnAllAIInGame(connection=Connection){
-        let lobby=this;
-        let serverItems=lobby.serverItems;
-        
-        //Despawnear items solo para el cliente que se ha ido
-        serverItems.forEach(serverItem=>{
-            connection.socket.emit('serverUnspawn',{
-                id:serverItem
-            })
-        });
-    }
-    
     updateZombies(){
         this.zombieSpawnTimeCounter+=0.1;
-
-        if(this.zombieSpawnTimeCounter>=3 && this.totalZombies<this.allZombiesRound && this.zombies<=this.maxZombies){
-
+        //console.log(this.zombieSpawnTimeCounter);
+        if(this.zombieSpawnTimeCounter>=3 && this.totalZombies<this.allZombiesRound && this.zombies<this.maxZombies){
             this.zombies+=1;
             this.totalZombies+=1;
             this.allZombiesSpawned+=1;
             this.zombieSpawnTimeCounter=0;
-            console.log("Actual zombies: "+this.zombies+" Max zombies: "+this.maxZombies+" Round: "+this.round+" All zombies: "+this.allZombiesRound); 
-            if(this.allZombiesSpawned>20)
+            console.log("currentZombies: "+this.totalZombies+" allzombiesRound: "+this.allZombiesRound+" currentZombies: "+this.zombies)
+            //console.log("Actual zombies: "+this.zombies+" Max zombies: "+this.maxZombies+" Round: "+this.round+" All zombies: "+this.allZombiesRound); 
+            if(this.allZombiesSpawned>9)
             {
                 this.maxZombiesReached=true;
             }
             this.onSpawnAIIntoGame();
         }
-        else if(this.zombies==this.allZombiesRound)
+        else if(this.totalZombies==this.allZombiesRound)
         {
             this.roundComplete=true;
         }  
     }
-
     updateRound()
     {
         let lobby = this; 
@@ -169,6 +72,7 @@ module.exports = class GameLobbby extends LobbyBase {
             let AllZombiedDead=true;
             let aiList = lobby.serverItems.filter(item => {return item instanceof AIBase;});
             aiList.forEach(ai => {
+                //console.log(!ai.isDead);
                 if(!ai.isDead)
                 {
                     AllZombiedDead=false;
@@ -188,8 +92,8 @@ module.exports = class GameLobbby extends LobbyBase {
             }
         }
     }
-
-    updateBullets() {
+    updateBullets() 
+    {
         let lobby = this;
         let bullets = lobby.bullets;
         let connections = lobby.connections;
@@ -213,7 +117,162 @@ module.exports = class GameLobbby extends LobbyBase {
             }
         });
     }
+    updateItems()
+    {
+        let lobby=this;
+        let items=lobby.serverItems;
+        let connections=lobby.connections;
+        let itemList = items.filter(item => {return item instanceof ItemBase;});
 
+        itemList.forEach(item => {
+            let colision=item.onCheckColision(connections);
+            let time=item.updateTime();
+            if(time){
+                lobby.onServerUnspawn(item);
+            }
+            if(colision){
+                connections.forEach(connection=>{
+                    connection.socket.emit('itemUsed',{
+                        id:item.id,
+                        name:item.username
+                    });
+                });
+                lobby.onServerUnspawn(item);     
+            }
+        });
+    }
+    canEnterLobby(connection = Connection) {
+        let lobby = this;
+        let maxPlayerCount = lobby.settings.maxPlayers;
+        let currentPlayerCount = lobby.connections.length;
+
+        if(currentPlayerCount + 1 > maxPlayerCount) {
+            return false;
+        }
+
+        return true;
+    }
+    onEnterLobby(connection = Connection) {
+        let lobby = this;
+        let socket=connection.socket;
+        super.onEnterLobby(connection);
+
+        let returnData={
+            state:lobby.lobbyState.currentState,
+            players:lobby.connections.length,
+            id:lobby.id
+        };
+
+        socket.emit('loadGame');
+        socket.emit('lobbyUpdate',returnData);
+        socket.broadcast.to(lobby.id).emit('lobbyUpdate',returnData);
+    }
+    onLeaveLobby(connection = Connection) {
+        let lobby = this;
+        let socket=connection.socket;
+        super.onLeaveLobby(connection);
+
+        lobby.removePlayer(connection);
+        
+        let returnData={
+            state:lobby.lobbyState.currentState,
+            players:lobby.connections.length,
+            id:lobby.id
+        };
+        socket.broadcast.to(lobby.id).emit('lobbyUpdate',returnData);
+        //Handle unspawning any server spawned objects here
+        //Example: loot, perhaps flying bullets etc
+        lobby.onUnspawnAllAIInGame(connection);
+    }
+    onStartGame()
+    {
+        let lobby=this;
+        let connection=this.connections[0];
+        let socket=connection.socket;
+
+        lobby.lobbyState.currentState=lobby.lobbyState.GAME;
+        let returnData={
+            state:lobby.lobbyState.currentState,
+            players:lobby.connections.length,
+            id:lobby.id
+        };
+
+        socket.emit('lobbyUpdate',returnData);
+        socket.broadcast.to(lobby.id).emit('lobbyUpdate',returnData);
+        lobby.onSpawnAllPlayersInGame();
+        this.lobbyUpdate=true;
+    }
+    onSpawnAllPlayersInGame()
+    {
+        let lobby=this;
+        let connections=lobby.connections;
+
+        connections.forEach(connection=>{
+            lobby.addPlayer(connection);
+        })
+    }
+    addPlayer(connection = Connection) {
+        let lobby = this;
+        let connections = lobby.connections;
+        let socket = connection.socket;
+
+        var returnData = {
+            id: connection.player.id
+        }
+
+        socket.emit('spawn', returnData); //Avisarme
+        connections.forEach(c => { //Avisar a otros
+            if(c.player.id != connection.player.id) {
+                socket.emit('Otherspawn', {
+                    id: c.player.id
+                });
+            }
+        });
+    }
+    onSpawnAIIntoGame(){
+        
+        let lobby=this;
+
+        if(this.maxZombiesReached)
+        {
+            let found=false;
+            let aiList = lobby.serverItems.filter(item => {return item instanceof AIBase;});
+            aiList=aiList.reverse();
+            aiList.forEach(ai => {
+                if(ai.isDead && found==false && ai.canRespawn)
+                {
+                    ai.respawn(this.round);
+                    found=true;
+                    var returnData = {
+                        id: ai.id/*,
+                        position: {
+                            x: ai.position.x,
+                            y: ai.position.y,
+                            z: ai.position.z
+                        },*/
+                    }
+                    console.log("zombie respawned with id"+returnData.id);
+                    lobby.connections[0].socket.emit('playerRespawn', returnData);
+                    lobby.connections[0].socket.broadcast.to(lobby.id).emit('playerRespawn', returnData);           
+                }
+            }); 
+        }
+        else
+        {
+            lobby.onServerSpawn(new ZombieAI(),new Vector3());
+        } 
+    }
+    onUnspawnAllAIInGame(connection=Connection){
+        let lobby=this;
+        let serverItems=lobby.serverItems;
+        
+        //Despawnear items solo para el cliente que se ha ido
+        serverItems.forEach(serverItem=>{
+            connection.socket.emit('serverUnspawn',{
+                id:serverItem
+            })
+        });
+    }
     onFireBullet(connection = Connection, data) {
         let lobby = this;
 
@@ -249,14 +308,6 @@ module.exports = class GameLobbby extends LobbyBase {
         connection.socket.emit('serverSpawn', returnData);
         connection.socket.broadcast.to(lobby.id).emit('serverSpawn', returnData); //Only broadcast to those in the same lobby as us
     }
-    /*
-    onZombiePosition()
-    {
-        let lobby = this;
-       
-        let returnZombie=lobby.zombies
-    }
-    */
     despawnBullet(bullet = Bullet) {
         let lobby = this;
         let bullets = lobby.bullets;
@@ -277,7 +328,6 @@ module.exports = class GameLobbby extends LobbyBase {
             });
         }
     }
-
     onCollisionDestroy(connection = Connection, data) {
         let lobby = this;
 
@@ -293,6 +343,7 @@ module.exports = class GameLobbby extends LobbyBase {
                         let isDead = ai.dealDamage(data.damage);
                         if (isDead) {
                             console.log('Ai has died');
+                            this.zombies-=1;
                             let returnData = {
                                 id: ai.id,
                                 username : ai.username
@@ -300,6 +351,10 @@ module.exports = class GameLobbby extends LobbyBase {
                             //Por el remoto caso de que el ultimo jugador se vaya pero la bala de a alguien mientras no hay nadie
                             lobby.connections[0].socket.emit('playerDied', returnData);
                             lobby.connections[0].socket.broadcast.to(lobby.id).emit('playerDied', returnData);
+                            var randomNumber=lobby.getRandomInt(15);
+                            if(randomNumber==0){
+                                lobby.onServerSpawn(new MaxAmmo(),new Vector3(data.x,data.y,data.z));
+                            }
                         } else {
                             console.log('AI with id: ' + ai.id + ' has (' + ai.health + ') health left');
                         }
@@ -310,7 +365,6 @@ module.exports = class GameLobbby extends LobbyBase {
             bullet.isDestroyed = true;                        
         });  
     }
-
     OnPlayerHit(data)
     {
         let lobby=this;
@@ -322,12 +376,14 @@ module.exports = class GameLobbby extends LobbyBase {
             }
         });
     }
-
     removePlayer(connection = Connection) {
         let lobby = this;
 
         connection.socket.broadcast.to(lobby.id).emit('disconnected', {
             id: connection.player.id
         });
+    }
+    getRandomInt(max) {
+        return Math.floor(Math.random() * max);
     }
 }
