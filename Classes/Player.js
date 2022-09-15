@@ -10,6 +10,7 @@ module.exports = class Player{
         this.gunRotation=new Number(0);
         this.playerRotation=new Number(0);
         this.health=new Number(100);
+        this.bloodCooldown=Number(0);
         this.isDead=false;
     }
 
@@ -22,15 +23,36 @@ module.exports = class Player{
 
     dealDamage(amount = Number) {
         this.health -=amount;
-
+        this.bloodCooldown=1.5;
         if(this.health <= 0 ) {
             this.isDead = true;
         }
         return this.isDead;
     }
 
+    blood()
+    {
+        this.bloodCooldown-=0.1;
+        if(this.bloodCooldown<0 && !this.isDead)
+        {
+            this.health+=0.5;         
+        }
+    }
+
+    checkAlive() {
+        if(this.health > 0) {
+            return true;
+        }
+        return false;
+    }
+
     displayPlayerInformation(){
         let player=this;
         return '('+player.username+': '+player.id+')';
+    }
+
+    maxHealth(){
+        this.health=100;
+        console.log("max health");
     }
 }

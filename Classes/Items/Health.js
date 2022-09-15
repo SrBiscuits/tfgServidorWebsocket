@@ -1,10 +1,10 @@
 let Vector3 = require('../Vector3');
 const ItemBase = require('./ItemBase');
 
-module.exports = class MaxAmmo extends ItemBase{
+module.exports = class Health extends ItemBase{
     constructor(){
         super();
-        this.username="MaxAmmo"
+        this.username="Health"
         this.position=new Vector3();
     }
 
@@ -27,7 +27,11 @@ module.exports = class MaxAmmo extends ItemBase{
             let player = connection.player;
             return item.position.Distance(player.position) < 15;
         });
+        /*
+        let availableTargets = connections.filter(player => {return player instanceof Player;});
+        console.log(availableTargets.length);*/
         availableTargets.forEach(p => {        
+            //console.log(item.position.Distance(p.player.position))
             if(item.position.Distance(p.player.position) < 1 && this.expiredTime<29){
                 found=true;
             }
@@ -35,5 +39,3 @@ module.exports = class MaxAmmo extends ItemBase{
         return found;    
     }
 }
-
-

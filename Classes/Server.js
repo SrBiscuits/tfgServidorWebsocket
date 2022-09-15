@@ -20,14 +20,11 @@ module.exports = class Server {
     //Interval update every 100 miliseconds
     onUpdate() {
         let server = this;
-
-        //Update each lobby
         for(let id in server.lobbys) {
             server.lobbys[id].onUpdate();
         }
     }
 
-    //Handle a new connection to the server
     onConnected(socket) {
         let server = this;
         let connection = new Connection();
@@ -56,19 +53,21 @@ module.exports = class Server {
         delete server.connections[id];
         console.log('Player ' + connection.player.displayPlayerInformation() + ' has disconnected');
 
-        //Tell Other players currently in the lobby that we have disconnected from the game
         connection.socket.broadcast.to(connection.player.lobby).emit('disconnected', {
             id: id
         });
 
-        //Preform lobby clean up
         let currentLobbyIndex=connection.player.lobby;
-        server.lobbys[currentLobbyIndex].onLeaveLobby(connection);
-        
-        if (currentLobbyIndex != server.generalServerID && server.lobbys[currentLobbyIndex]!=undefined && server.lobbys[currentLobbyIndex].connections.length == 0) 
-        {
-            console.log("Cerrando sala: "+currentLobbyIndex)
-            delete server.lobbys[currentLobbyIndex];          
+        if(server.lobbys[currentLobbyIndex]!=undefined){
+            server.lobbys[currentLobbyIndex].onLeaveLobby(connection);
+            if (currentLobbyIndex != server.generalServerID){
+                server.lobbys[currentLobbyIndex].checkIfAllPlayersAreDead();
+            }
+            if (currentLobbyIndex != server.generalServerID && server.lobbys[currentLobbyIndex]!=undefined && server.lobbys[currentLobbyIndex].connections.length == 0) 
+            {
+                console.log("Cerrando sala: "+currentLobbyIndex)
+                delete server.lobbys[currentLobbyIndex];          
+            }
         }
     }
 
@@ -76,11 +75,17 @@ module.exports = class Server {
     {
         this.lobbys[id].onStartGame();
     }
-
+    onEndLobby(id)
+    {
+        let server = this;
+        console.log("Cerrando sala: "+id)
+        this.lobbys[id].onEndGame();
+        delete server.lobbys[id]; 
+    }
+    swapHost(id){
+        this.lobbys[id].newHost();
+    }
     onAttemptToJoinGame(connection = Connection) {
-        //Look through lobbies for a gamelobby
-        //check if joinable
-        //if not make a new game
         let server = this;
         let lobbyFound = false;
 
@@ -90,7 +95,7 @@ module.exports = class Server {
                 gameLobbies.push(server.lobbys[id]);
             }
         }
-        console.log('Found (' + gameLobbies.length + ') lobbies on the server');
+        console.log('Encontradas (' + gameLobbies.length + ') lobbies en el servidor');
 
         gameLobbies.forEach(lobby => {
             if(!lobbyFound) {
@@ -103,12 +108,9 @@ module.exports = class Server {
             }
         });
 
-        //All game lobbies full or we have never created one
         if(!lobbyFound) {
-            console.log('Making a new game lobby');
-            connection.socket.emit('host');
+            console.log('Haciendo nueva lobby');
             let gamelobby = new GameLobby(new GameLobbySettings('Zombies', 4));
-            //gamelobby.endGameLobby = function() {server.closeDownLobby(gamelobby.id)};
             server.lobbys[gamelobby.id]=gamelobby;
             server.onSwitchLobby(connection, gamelobby.id);
         }
@@ -118,8 +120,8 @@ module.exports = class Server {
         let server = this;
         let lobbys = server.lobbys;
 
-        connection.socket.join(lobbyID); // Join the new lobby's socket channel
-        connection.lobby = lobbys[lobbyID];//assign reference to the new lobby
+        connection.socket.join(lobbyID);
+        connection.lobby = lobbys[lobbyID];
 
         lobbys[connection.player.lobby].onLeaveLobby(connection);
         lobbys[lobbyID].onEnterLobby(connection);

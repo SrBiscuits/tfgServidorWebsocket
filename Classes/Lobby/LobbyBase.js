@@ -10,49 +10,30 @@ module.exports = class LobbyBase {
         this.id = shortID.generate();
         this.connections = [];
         this.serverItems=[];
+        this.currentHostNumber=Number(0);
+        this.hostswap=false;
     }
 
     onUpdate() {  
-        /*     
-        let lobby=this;
-        let serverItems=lobby.serverItems;   
-        let aiList=serverItems.filter(item =>{return item instanceof AIBase;});
-        aiList.forEach(AI=>{
-            AI.onObtainTarget(lobby.connections);
-            
-            AI.onUpdate(data=>{
-                lobby.connections.forEach(connection=>{
-                   let socket=connection.socket;
-                    socket.emit('updatePosition',data);
-                });
-            }, (data) =>{
-                lobby.connections.forEach(connection=>{
-                    let socket=connection.socket;
-                    socket.emit('updateZombieRotation',data);
-                });
-            });
-        });
-        */
     } 
 
     onEnterLobby(connection = Connection) {
         let lobby = this;
         let player = connection.player;
 
-        console.log('Player ' + player.displayPlayerInformation() + ' has entered the lobby (' + lobby.id + ')');
+        console.log("Player "+ player.displayPlayerInformation() + " entered (" + lobby.id + ")");
 
         lobby.connections.push(connection);
 
         player.lobby = lobby.id;
-        connection.lobby = lobby;
-        
+        connection.lobby = lobby;    
     }
 
     onLeaveLobby(connection = Connection) {
         let lobby = this;
         let player = connection.player;
 
-        console.log('Player ' + player.displayPlayerInformation() + ' has left the lobby (' + lobby.id + ')');
+        console.log('Player ' + player.displayPlayerInformation() + ' leaved (' + lobby.id + ')');
 
         connection.lobby = undefined;
 
@@ -60,9 +41,10 @@ module.exports = class LobbyBase {
         if(index > -1) {
             lobby.connections.splice(index, 1);
         }
-        if(this.connections.length>0 && lobby.id>0)
+        if(this.connections.length>0 && lobby.id!='General Server')
         {
             this.connections[0].socket.emit('host');
+            this.currentHostNumber=0;
         }
     }
 
@@ -106,5 +88,7 @@ module.exports = class LobbyBase {
         if(index>-1){
             serverItems.splice(index,1);
         }
+    }
+    newHost(){
     }
 }

@@ -1,4 +1,6 @@
 /*
+Servidor básico para la fase 1 del tfg
+
 const Websocket = require('ws');
 
 const portal=(process.env.PORT||8080);

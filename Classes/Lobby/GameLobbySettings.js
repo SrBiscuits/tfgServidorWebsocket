@@ -1,6 +1,6 @@
 module.exports=class GameLobbySettings {
     constructor(gameMode, maxPlayers) {
-        this.gameMode = 'No Gamemode Defined';
+        this.gameMode = 'Default';
         this.maxPlayers = maxPlayers;
     }
 }

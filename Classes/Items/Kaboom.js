@@ -1,10 +1,10 @@
 let Vector3 = require('../Vector3');
 const ItemBase = require('./ItemBase');
 
-module.exports = class MaxAmmo extends ItemBase{
+module.exports = class Kaboom extends ItemBase{
     constructor(){
         super();
-        this.username="MaxAmmo"
+        this.username="Kaboom"
         this.position=new Vector3();
     }
 
@@ -35,5 +35,3 @@ module.exports = class MaxAmmo extends ItemBase{
         return found;    
     }
 }
-
-

@@ -10,7 +10,7 @@ module.exports=class ItemBase extends ServerItem{
     updateTime(){
         
     }   
-    onCheckColision(connections){
+    onCheckColision(){
 
     }
 }
